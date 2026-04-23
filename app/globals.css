@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
+/* ===== PIOLA.AR Theme ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --piola-celeste: #74ACDF;
+  --piola-celeste-deep: #4A90C2;
+  --piola-amarillo: #F6B40E;
+  --piola-negro: #0A0A0A;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #FFFFFF;
+  color: #0A0A0A;
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: #F6B40E;
+  color: #0A0A0A;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #FFFFFF; }
+::-webkit-scrollbar-thumb { background: #E5E5E5; }
+::-webkit-scrollbar-thumb:hover { background: #F6B40E; }
+
+/* ===== Animations ===== */
+@keyframes piolaFadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes piolaSlideIn {
+  from { opacity: 0; transform: translateX(-32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes piolaRouteEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes piolaSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes piolaMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.piola-fade-in { animation: piolaFadeIn 0.5s ease-out both; }
+.piola-slide-in { animation: piolaSlideIn 0.5s ease-out both; }
+.piola-route-enter { animation: piolaRouteEnter 0.3s ease-out both; }
+.piola-spin { animation: piolaSpin 20s linear infinite; transform-origin: center; }
+.piola-spin-fast { animation: piolaSpin 2s linear infinite; transform-origin: center; }
+.piola-marquee { animation: piolaMarquee 30s linear infinite; }
+
+/* Aspect ratio card con fallback */
+.piola-card-box {
+  position: relative;
+  width: 100%;
+}
+.piola-card-box::before {
+  content: "";
+  display: block;
+  padding-bottom: 125%;
+}
+.piola-card-inner {
+  position: absolute;
+  inset: 0;
+}
+
+/* Hover effects */
+.piola-card-img { transition: transform 0.5s ease; }
+.group:hover .piola-card-img { transform: scale(1.08); }
