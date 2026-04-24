@@ -90,6 +90,46 @@ const img = (key, idx = 0, product = null) => {
   return `data:image/jpeg;base64,${arr[idx]}`;
 };
 
+// Subir imagen a R2 via API route
+async function uploadToR2(dataUrl) {
+  try {
+    // Convertir dataURL a File
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], `photo-${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error("Upload failed");
+    const { url } = await response.json();
+    return url; // URL pública de R2
+  } catch (err) {
+    console.error("Error subiendo imagen:", err);
+    return dataUrl; // Fallback: guardar como dataURL si falla
+  }
+}
+
+// Subir múltiples imágenes a R2
+async function uploadImagesToR2(dataUrls) {
+  const urls = [];
+  for (const dataUrl of dataUrls) {
+    if (!dataUrl) continue;
+    if (dataUrl.startsWith("http") && !dataUrl.startsWith("data:")) {
+      urls.push(dataUrl); // Ya es una URL de R2, no re-subir
+    } else {
+      const url = await uploadToR2(dataUrl);
+      urls.push(url);
+    }
+  }
+  return urls;
+}
+
 /* ============================================================
    CONFIG: paleta, brands, productos seed
    ============================================================ */
@@ -3247,19 +3287,30 @@ function NewProductFlow({ onDone }) {
     }, 2200);
   };
 
+  const [saving, setSaving] = useState(false);
+
   const save = async () => {
-    const id = `custom_${Date.now()}`;
-    const newProd = {
-      ...form,
-      id,
-      imageKey: id,
-      colors: form.colors.filter((c) => c.trim()),
-      _previewUrls: previews,
-      images: previews,
-    };
-    const ok = await addProduct(newProd);
-    if (ok) onDone();
-    else alert("Error al guardar el producto. Intentá de nuevo.");
+    setSaving(true);
+    try {
+      const id = `custom_${Date.now()}`;
+      // Subir fotos a R2
+      const imageUrls = await uploadImagesToR2(previews);
+      const newProd = {
+        ...form,
+        id,
+        imageKey: id,
+        colors: form.colors.filter((c) => c.trim()),
+        _previewUrls: imageUrls,
+        images: imageUrls,
+      };
+      const ok = await addProduct(newProd);
+      if (ok) onDone();
+      else alert("Error al guardar el producto. Intentá de nuevo.");
+    } catch (err) {
+      alert("Error subiendo imágenes. Intentá de nuevo.");
+      console.error(err);
+    }
+    setSaving(false);
   };
 
   return (
@@ -3508,15 +3559,25 @@ function PhotoManager({ product, onSave, onCancel }) {
     });
   };
 
-  const save = () => {
-    // Guardamos las fotos nuevas como _previewUrls (array de dataURIs)
-    const newPhotos = photos.filter((p) => p);
-    const updated = {
-      ...product,
-      _previewUrls: newPhotos,
-      // Mantenemos la imageKey original para fallback, pero las _previewUrls tienen prioridad en img()
-    };
-    onSave(updated);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const newPhotos = photos.filter((p) => p);
+      // Subir fotos nuevas a R2
+      const imageUrls = await uploadImagesToR2(newPhotos);
+      const updated = {
+        ...product,
+        _previewUrls: imageUrls,
+        images: imageUrls,
+      };
+      onSave(updated);
+    } catch (err) {
+      alert("Error subiendo imágenes.");
+      console.error(err);
+    }
+    setSaving(false);
   };
 
   const hasChanges = photos.some((p, i) => p !== initial[i]);
